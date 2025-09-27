@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -50,7 +51,19 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	contentType := strings.Split(header.Header.Get("Content-Type"), "/")
+	mediatype, _, err := mime.ParseMediaType(header.Header.Get("Content-Type"))
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Unauthorised user", err)
+		return
+	}
+
+	if mediatype != "image/jpeg" && mediatype != "image/png" {
+		respondWithError(w, http.StatusNotFound, "cannot use file type for thumbnail", err)
+		return
+	}
+
+	contentType := strings.Split(mediatype, "/")
 	extension := contentType[len(contentType)-1]
 
 	thumbnailPath := filepath.Join(
@@ -60,13 +73,13 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 	thmbFile, err := os.Create(thumbnailPath)
 
 	if err != nil {
-		respondWithError(w, http.StatusCreated, fmt.Sprintf("unable to create file %s", thumbnailPath), err)
+		respondWithError(w, http.StatusNotFound, fmt.Sprintf("unable to create file %s", thumbnailPath), err)
 		return
 	}
 
 	_, err = io.Copy(thmbFile, file)
 	if err != nil {
-		respondWithError(w, http.StatusCreated, fmt.Sprintf("unable to copy thumbnail to %s", thumbnailPath), err)
+		respondWithError(w, http.StatusNotFound, fmt.Sprintf("unable to copy thumbnail to %s", thumbnailPath), err)
 		return
 	}
 
