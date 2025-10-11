@@ -67,6 +67,7 @@ func (cfg *apiConfig) handlerVideoMetaDelete(w http.ResponseWriter, r *http.Requ
 		respondWithError(w, http.StatusNotFound, "Couldn't get video", err)
 		return
 	}
+
 	if video.UserID != userID {
 		respondWithError(w, http.StatusForbidden, "You can't delete this video", err)
 		return
@@ -110,11 +111,17 @@ func (cfg *apiConfig) handlerVideosRetrieve(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	videos, err := cfg.db.GetVideos(userID)
+	srcVideos, err := cfg.db.GetVideos(userID)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't retrieve videos", err)
 		return
 	}
 
+	videos := make([]database.Video, 0)
+	for _, vid := range srcVideos {
+
+		videos = append(videos, vid)
+
+	}
 	respondWithJSON(w, http.StatusOK, videos)
 }
